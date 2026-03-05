@@ -4,6 +4,10 @@ Docs: https://clawd.org.cn/
 
 ## 0.1.8
 
+### 新功能
+
+- **持久化命令队列**：新增基于 SQLite 的持久化队列后端，支持进程重启后自动静默恢复未完成任务，避免向用户发送「服务已重启，请重新发送」的扰人通知。通过 `queue.mode: "persistent"` 启用，默认保持 `memory` 模式（向后兼容）；`better-sqlite3` 作为可选依赖，未安装时自动降级并给出友好提示。同步修复了队列 drop 策略（`drop: "old"/"summarize"`）在持久化模式下被丢弃的消息重启后「复活」的 bug（#323，感谢 @dragonforce2010）
+
 ### bug修复
 
 - **DM 多 Agent 内容路由**：新增 `agents.list[].dmChat.mentionPatterns` 配置项，支持在私信（DM）场景下通过消息关键词/正则将消息路由到指定 Agent；修复 `DmConfig` 类型缺少 `mentionPatterns` 字段导致配置无效的问题（#460）

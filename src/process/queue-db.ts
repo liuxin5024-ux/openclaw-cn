@@ -46,8 +46,17 @@ export function initQueueDB(customDbPath?: string): SqliteDatabase {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
   }
-  const Database = require("better-sqlite3") as { new (dbPath: string): SqliteDatabase };
-  db = new Database(dbPath /*, { verbose: console.log } */);
+  let DatabaseCtor: { new (dbPath: string): SqliteDatabase };
+  try {
+    DatabaseCtor = require("better-sqlite3") as { new (dbPath: string): SqliteDatabase };
+  } catch {
+    throw new Error(
+      `[openclaw] persistent queue requires better-sqlite3 which is not installed.\n` +
+        `Run: npm install better-sqlite3\n` +
+        `Or set queue.mode to "memory" in your openclaw.json to disable persistence.`,
+    );
+  }
+  db = new DatabaseCtor(dbPath /*, { verbose: console.log } */);
   db.pragma("journal_mode = WAL");
 
   // Schema creation

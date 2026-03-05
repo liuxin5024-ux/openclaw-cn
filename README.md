@@ -89,6 +89,7 @@ pnpm openclaw-cn onboard --install-daemon
 - [快速开始](https://clawd.org.cn/docs/start/getting-started)
 - [Gateway 配置](https://clawd.org.cn/docs/gateway/configuration)
 - [渠道接入](https://clawd.org.cn/docs/channels)
+- [QQ (OneBot) 社区插件 ↗](https://github.com/Daiyimo/openclaw-napcat) - 由 @Daiyimo 贡献，基于 NapCat/Lagrange（非官方内置）
 - [技能开发](https://clawd.org.cn/docs/tools/skills)
 
 ## 🔄 版本同步
@@ -112,6 +113,7 @@ pnpm openclaw-cn onboard --install-daemon
   <a href="https://github.com/yanghua"><img src="https://avatars.githubusercontent.com/yanghua?v=4" width="48" height="48" alt="yanghua" /></a>
   <a href="https://github.com/qqdxyg"><img src="https://avatars.githubusercontent.com/qqdxyg?v=4" width="48" height="48" alt="qqdxyg" /></a>
   <a href="https://github.com/ddupg"><img src="https://avatars.githubusercontent.com/ddupg?v=4" width="48" height="48" alt="ddupg" /></a>
+  <a href="https://github.com/Daiyimo"><img src="https://avatars.githubusercontent.com/Daiyimo?v=4" width="48" height="48" alt="Daiyimo" /></a>
 </p>
 
 ## 📋 开发计划
@@ -122,7 +124,7 @@ pnpm openclaw-cn onboard --install-daemon
 - [x] 中文官网和文档
 - [x] 飞书渠道适配
 - [ ] 微信渠道适配
-- [ ] QQ 渠道适配
+- [x] QQ 渠道适配 (由 @Daiyimo 贡献，详见 [openclaw-napcat](https://github.com/Daiyimo/openclaw-napcat))
 - [ ] 钉钉/企业微信适配
 
 ## 📄 许可证

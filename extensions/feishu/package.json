@@ -41,15 +41,26 @@
     "build": "tsc",
     "clean": "rm -rf dist"
   },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.56.1"
+  },
   "peerDependencies": {
+    "@sinclair/typebox": "*",
     "openclaw": "*",
-    "openclaw-cn": "*"
+    "openclaw-cn": "*",
+    "zod": "*"
   },
   "peerDependenciesMeta": {
     "openclaw": {
       "optional": true
     },
     "openclaw-cn": {
+      "optional": true
+    },
+    "@sinclair/typebox": {
+      "optional": true
+    },
+    "zod": {
       "optional": true
     }
   },

@@ -1631,6 +1631,9 @@
 .agent-kv {
   display: grid;
   gap: 6px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .agent-kv-sub {

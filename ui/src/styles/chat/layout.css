@@ -97,6 +97,42 @@
   stroke-linejoin: round;
 }
 
+/* New messages indicator - floating button above compose */
+.chat-new-messages {
+  position: sticky;
+  bottom: 0;
+  align-self: center;
+  z-index: 11;
+  padding: 6px 16px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition:
+    background var(--duration-fast) ease,
+    border-color var(--duration-fast) ease;
+  margin-bottom: -4px;
+}
+
+.chat-new-messages:hover {
+  background: var(--panel-strong);
+  border-color: var(--accent);
+}
+
+.chat-new-messages svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2px;
+}
+
 /* Chat compose - sticky at bottom */
 .chat-compose {
   position: sticky;

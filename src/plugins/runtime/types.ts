@@ -10,8 +10,11 @@ type ResolveEffectiveMessagesConfig =
 type ResolveHumanDelayConfig = typeof import("../../agents/identity.js").resolveHumanDelayConfig;
 type ResolveAgentRoute = typeof import("../../routing/resolve-route.js").resolveAgentRoute;
 type BuildPairingReply = typeof import("../../pairing/pairing-messages.js").buildPairingReply;
-type ReadChannelAllowFromStore =
-  typeof import("../../pairing/pairing-store.js").readChannelAllowFromStore;
+type ReadChannelAllowFromStore = (params: {
+  channel: string;
+  accountId?: string;
+  env?: NodeJS.ProcessEnv;
+}) => Promise<string[]>;
 type UpsertChannelPairingRequest =
   typeof import("../../pairing/pairing-store.js").upsertChannelPairingRequest;
 type FetchRemoteMedia = typeof import("../../media/fetch.js").fetchRemoteMedia;
@@ -232,7 +235,7 @@ export type PluginRuntime = {
     };
     pairing: {
       buildPairingReply: BuildPairingReply;
-      readAllowFromStore: ReadChannelAllowFromStore;
+      readAllowFromStore: ReadChannelAllowFromStore; // accepts { channel, accountId?, env? }
       upsertPairingRequest: UpsertChannelPairingRequest;
     };
     media: {

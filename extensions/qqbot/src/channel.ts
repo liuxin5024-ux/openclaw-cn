@@ -10,7 +10,7 @@ const CHANNEL_ID = "qqbot";
 const meta: ChannelMeta = {
   id: CHANNEL_ID,
   label: "QQ",
-  selectionLabel: "QQ (中文社区版)",
+  selectionLabel: "QQ (社区版)",
   docsPath: "/channels/qqbot",
   docsLabel: "qqbot",
   blurb: "QQ 频道/群机器人，通过社区版 aqbot 接入。",

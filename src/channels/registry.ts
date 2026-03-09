@@ -105,7 +105,7 @@ const CHAT_CHANNEL_META: Record<ChatChannelId, ChannelMeta> = {
   qqbot: {
     id: "qqbot",
     label: "QQ",
-    selectionLabel: "QQ (中文社区版)",
+    selectionLabel: "QQ (社区版)",
     detailLabel: "QQ 机器人",
     docsPath: "/channels/qqbot",
     docsLabel: "qqbot",

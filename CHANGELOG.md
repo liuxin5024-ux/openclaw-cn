@@ -6,7 +6,7 @@ Docs: https://clawd.org.cn/
 
 ### bug修复（0.1.8 热补丁）
 
-- **Windows 插件安装崩溃修复**：修复在 Windows 环境下运行配置向导安装飞书/钉钉等插件时，`npm pack` 子进程因 `stdin: inherit` + 非 TTY 环境触发 `spawn EINVAL` 错误导致向导直接退出的问题。根本原因：`runCommandWithTimeout` 默认将 stdin 设为 `inherit`，而 Windows 不允许对非 TTY 句柄使用 `inherit`。修复方案：给 `CommandOptions` 新增 `preferInheritStdin` 选项，`installPluginFromNpmSpec` 传入 `false` 强制使用 `pipe`
+- **Windows 插件安装崩溃修复**：修复在 Windows 环境下运行配置向导安装飞书/钉钉/企业微信等插件时，`npm pack` 子进程触发 `spawn EINVAL` 错误导致向导直接退出的问题。根本原因一：`stdin: inherit` 在非 TTY 环境下 Windows 不允许（`0.1.8-fix.1` 已修复）。根本原因二（`0.1.8-fix.2`）：`.cmd` 批处理文件在 Windows 上不能被直接 `spawn`，必须通过 `cmd.exe /d /s /c` 包装执行。修复方案：新增 `resolveCommandArgv()` 函数，在 Windows 上对 `npm`/`pnpm` 等命令自动用 `cmd.exe` 包装，消除 `spawn EINVAL`
 - **SIGUSR1 重启后插件不重载修复**：修复 `openclaw-cn gateway restart` 或发送 SIGUSR1 后，飞书等 npm 安装的插件无法重新加载导致连接断开的问题。根本原因：`loader.ts` 新增的"source 文件不存在时跳过捆绑壳"逻辑错误地调用了 `seenIds.set(pluginId, "bundled")`，导致后续同 id 的 npm 安装版本被判定为重复而跳过。修复方案：source 不存在时不占用 `seenIds`，让 npm 安装版本正常加载
 
 ### 飞书插件 npm 独立分发

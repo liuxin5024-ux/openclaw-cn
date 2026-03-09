@@ -8,25 +8,36 @@ import { resolveCommandStdio } from "./spawn-utils.js";
 const execFileAsync = promisify(execFile);
 
 /**
- * Resolves a command for Windows compatibility.
- * On Windows, non-.exe commands (like npm, pnpm) require their .cmd extension.
+ * Resolves a command + argv for Windows compatibility.
+ * On Windows, .cmd/.bat files cannot be spawned directly without a shell;
+ * we wrap them via `cmd.exe /d /s /c` with a fixed, trusted argv so there
+ * is no shell-injection risk (the arguments are never user-controlled here).
+ * Returns { command, args } where args already includes the original argv slice.
  */
-function resolveCommand(command: string): string {
+function resolveCommandArgv(command: string, args: string[]): { command: string; args: string[] } {
   if (process.platform !== "win32") {
-    return command;
+    return { command, args };
   }
   const basename = path.basename(command).toLowerCase();
-  // Skip if already has an extension (.cmd, .exe, .bat, etc.)
   const ext = path.extname(basename);
-  if (ext) {
-    return command;
+  // Already a .cmd/.bat: wrap with cmd.exe
+  if (ext === ".cmd" || ext === ".bat") {
+    return { command: "cmd.exe", args: ["/d", "/s", "/c", command, ...args] };
   }
-  // Common npm-related commands that need .cmd extension on Windows
-  const cmdCommands = ["npm", "pnpm", "yarn", "npx"];
-  if (cmdCommands.includes(basename)) {
-    return `${command}.cmd`;
+  // Bare name with no extension: check if a .cmd shim exists on PATH
+  if (!ext) {
+    const cmdCommands = ["npm", "pnpm", "yarn", "npx"];
+    if (cmdCommands.includes(basename)) {
+      const cmdShim = `${command}.cmd`;
+      return { command: "cmd.exe", args: ["/d", "/s", "/c", cmdShim, ...args] };
+    }
   }
-  return command;
+  return { command, args };
+}
+
+/** @deprecated use resolveCommandArgv */
+function resolveCommand(command: string): string {
+  return resolveCommandArgv(command, []).command;
 }
 
 export function shouldSpawnWithShell(params: {
@@ -136,15 +147,15 @@ export async function runCommandWithTimeout(
     hasInput,
     preferInherit: options.preferInheritStdin !== false,
   });
-  const resolvedCommand = resolveCommand(argv[0] ?? "");
-  const child = spawn(resolvedCommand, argv.slice(1), {
+  const { command: resolvedCommand, args: resolvedArgs } = resolveCommandArgv(
+    argv[0] ?? "",
+    argv.slice(1),
+  );
+  const child = spawn(resolvedCommand, resolvedArgs, {
     stdio,
     cwd,
     env: resolvedEnv,
     windowsVerbatimArguments,
-    ...(shouldSpawnWithShell({ resolvedCommand, platform: process.platform })
-      ? { shell: true }
-      : {}),
   });
   // Spawn with inherited stdin (TTY) so tools like `pi` stay interactive when needed.
   return await new Promise((resolve, reject) => {

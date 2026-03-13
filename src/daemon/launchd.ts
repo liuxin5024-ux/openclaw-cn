@@ -129,6 +129,11 @@ async function execLaunchctl(
 }
 
 function resolveGuiDomain(): string {
+  // When invoked via `sudo`, process.getuid() returns 0 (root), but LaunchAgents belong
+  // to the original user's GUI session. Use SUDO_UID if present so bootstrap targets the
+  // correct gui/<uid> domain instead of the non-existent gui/0 domain (exit 125).
+  const sudoUid = process.env.SUDO_UID;
+  if (sudoUid && /^\d+$/.test(sudoUid)) return `gui/${sudoUid}`;
   if (typeof process.getuid !== "function") return "gui/501";
   return `gui/${process.getuid()}`;
 }

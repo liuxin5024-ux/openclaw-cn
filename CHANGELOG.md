@@ -10,6 +10,10 @@ Docs: https://clawd.org.cn/
 
 - **修复非 GUI 会话下 `gateway install` 报 exit 125 错误**：在 SSH 连接或无 GUI 登录的 macOS 用户下安装网关时，`launchctl bootstrap gui/<uid>` 因 `gui/<uid>` domain 不存在而报 `Bootstrap failed: 125`。修复方案：当检测到 launchd 125 错误时，自动降级到 `launchctl load -w`（macOS 兼容方案），服务立即启动，并在用户下次 GUI 登录时自动激活
 
+- **修复 `--port` 参数安装后端口不生效问题（根本修复）**：`LEGACY_GATEWAY_LAUNCH_AGENT_LABELS` 包含 `com.clawdbot.gateway`（与当前 label 相同），legacy 清理循环会 `fs.unlink` 删除当前 plist 文件，导致后续主 teardown 的 `unload -w` 无文件可操作（no-op），旧服务的 launchd 注册未被清除，新 `load -w` / `bootstrap` 检测到同名 label 已存在也变成 no-op，进程始终以旧端口启动。修复方案：legacy 循环跳过当前 label（由主 teardown 处理），确保 plist 文件在 `unload -w` 前始终存在
+
+- **修复 SSH 会话中无法卸载/替换 GUI 会话加载的 LaunchAgent**：通过 SSH 执行 `gateway install --port 18790` 时，如果该服务之前是通过 GUI 登录会话加载的（`launchctl load/bootstrap gui/<uid>`），SSH 会话中的 `bootout gui/<uid>/label` 和 `unload -w` 命令均无法触达该服务（macOS launchd 跨域隔离），导致旧进程持续运行。修复方案：所有 launchd 卸载/停止/检测操作优先使用 `launchctl remove <label>`（无需指定 domain，跨上下文可靠），`launchctl list <label>` 替代 `launchctl print domain/label` 做存在性检测，确保从 SSH、sudo、GUI 任意上下文均可正确管理服务
+
 ## 0.1.8
 
 ### bug修复（0.1.8 热补丁）

@@ -128,14 +128,23 @@ async function execLaunchctl(
   }
 }
 
-function resolveGuiDomain(): string {
+function resolveEffectiveUid(): number {
   // When invoked via `sudo`, process.getuid() returns 0 (root), but LaunchAgents belong
-  // to the original user's GUI session. Use SUDO_UID if present so bootstrap targets the
-  // correct gui/<uid> domain instead of the non-existent gui/0 domain (exit 125).
+  // to the original user. Use SUDO_UID if present so operations target the correct user.
   const sudoUid = process.env.SUDO_UID;
-  if (sudoUid && /^\d+$/.test(sudoUid)) return `gui/${sudoUid}`;
-  if (typeof process.getuid !== "function") return "gui/501";
-  return `gui/${process.getuid()}`;
+  if (sudoUid && /^\d+$/.test(sudoUid)) return Number.parseInt(sudoUid, 10);
+  if (typeof process.getuid !== "function") return 501;
+  return process.getuid();
+}
+
+function resolveGuiDomain(): string {
+  return `gui/${resolveEffectiveUid()}`;
+}
+
+// The user/<uid> domain always exists for all users (not tied to a GUI session).
+// LaunchAgents loaded via `launchctl load` from SSH sessions land here.
+function resolveUserDomain(): string {
+  return `user/${resolveEffectiveUid()}`;
 }
 
 export type LaunchctlPrintInfo = {
@@ -168,10 +177,17 @@ export function parseLaunchctlPrint(output: string): LaunchctlPrintInfo {
 export async function isLaunchAgentLoaded(args: {
   env?: Record<string, string | undefined>;
 }): Promise<boolean> {
-  const domain = resolveGuiDomain();
   const label = resolveLaunchAgentLabel({ env: args.env });
-  const res = await execLaunchctl(["print", `${domain}/${label}`]);
-  return res.code === 0;
+  // `launchctl list <label>` is the most reliable cross-context check (works from SSH,
+  // GUI, sudo, and regardless of how the service was loaded — bootstrap or legacy load).
+  const listRes = await execLaunchctl(["list", label]);
+  if (listRes.code === 0) return true;
+  // Fallback: check domain-specific print for newer macOS.
+  for (const domain of [resolveGuiDomain(), resolveUserDomain()]) {
+    const res = await execLaunchctl(["print", `${domain}/${label}`]);
+    if (res.code === 0) return true;
+  }
+  return false;
 }
 
 export async function isLaunchAgentListed(args: {
@@ -198,9 +214,12 @@ export async function launchAgentPlistExists(
 export async function readLaunchAgentRuntime(
   env: Record<string, string | undefined>,
 ): Promise<GatewayServiceRuntime> {
-  const domain = resolveGuiDomain();
   const label = resolveLaunchAgentLabel({ env });
-  const res = await execLaunchctl(["print", `${domain}/${label}`]);
+  // Try gui/<uid> first; fall back to user/<uid> for SSH/no-GUI installs.
+  let res = await execLaunchctl(["print", `${resolveGuiDomain()}/${label}`]);
+  if (res.code !== 0) {
+    res = await execLaunchctl(["print", `${resolveUserDomain()}/${label}`]);
+  }
   if (res.code !== 0) {
     return {
       status: "unknown",
@@ -250,12 +269,24 @@ export type LegacyLaunchAgent = {
 export async function findLegacyLaunchAgents(
   env: Record<string, string | undefined>,
 ): Promise<LegacyLaunchAgent[]> {
-  const domain = resolveGuiDomain();
   const results: LegacyLaunchAgent[] = [];
   for (const label of LEGACY_GATEWAY_LAUNCH_AGENT_LABELS) {
     const plistPath = resolveLaunchAgentPlistPathForLabel(env, label);
-    const res = await execLaunchctl(["print", `${domain}/${label}`]);
-    const loaded = res.code === 0;
+    // `launchctl list <label>` is the most reliable cross-context check.
+    let loaded = false;
+    const listRes = await execLaunchctl(["list", label]);
+    if (listRes.code === 0) {
+      loaded = true;
+    } else {
+      // Fallback: domain-specific print.
+      for (const domain of [resolveGuiDomain(), resolveUserDomain()]) {
+        const res = await execLaunchctl(["print", `${domain}/${label}`]);
+        if (res.code === 0) {
+          loaded = true;
+          break;
+        }
+      }
+    }
     let exists = false;
     try {
       await fs.access(plistPath);
@@ -277,7 +308,6 @@ export async function uninstallLegacyLaunchAgents({
   env: Record<string, string | undefined>;
   stdout: NodeJS.WritableStream;
 }): Promise<LegacyLaunchAgent[]> {
-  const domain = resolveGuiDomain();
   const agents = await findLegacyLaunchAgents(env);
   if (agents.length === 0) return agents;
 
@@ -290,7 +320,12 @@ export async function uninstallLegacyLaunchAgents({
   }
 
   for (const agent of agents) {
-    await execLaunchctl(["bootout", domain, agent.plistPath]);
+    // `launchctl remove` is cross-context and stops the service regardless of domain.
+    await execLaunchctl(["remove", agent.label]);
+    for (const domain of [resolveGuiDomain(), resolveUserDomain()]) {
+      await execLaunchctl(["bootout", domain, agent.plistPath]);
+      await execLaunchctl(["bootout", `${domain}/${agent.label}`]);
+    }
     await execLaunchctl(["unload", agent.plistPath]);
 
     try {
@@ -318,10 +353,15 @@ export async function uninstallLaunchAgent({
   env: Record<string, string | undefined>;
   stdout: NodeJS.WritableStream;
 }): Promise<void> {
-  const domain = resolveGuiDomain();
   const label = resolveLaunchAgentLabel({ env });
   const plistPath = resolveLaunchAgentPlistPath(env);
-  await execLaunchctl(["bootout", domain, plistPath]);
+  // `launchctl remove` is cross-context and stops the service regardless of domain.
+  await execLaunchctl(["remove", label]);
+  // Belt-and-suspenders: also try domain-specific bootout and legacy unload.
+  for (const domain of [resolveGuiDomain(), resolveUserDomain()]) {
+    await execLaunchctl(["bootout", domain, plistPath]);
+    await execLaunchctl(["bootout", `${domain}/${label}`]);
+  }
   await execLaunchctl(["unload", plistPath]);
 
   try {
@@ -359,13 +399,17 @@ export async function stopLaunchAgent({
   stdout: NodeJS.WritableStream;
   env?: Record<string, string | undefined>;
 }): Promise<void> {
-  const domain = resolveGuiDomain();
   const label = resolveLaunchAgentLabel({ env });
-  const res = await execLaunchctl(["bootout", `${domain}/${label}`]);
-  if (res.code !== 0 && !isLaunchctlNotLoaded(res)) {
-    throw new Error(`launchctl bootout failed: ${res.stderr || res.stdout}`.trim());
+  // `launchctl remove` is the most reliable cross-context stop mechanism.
+  const removeRes = await execLaunchctl(["remove", label]);
+  let stopped = removeRes.code === 0 || isLaunchctlNotLoaded(removeRes);
+  // Belt-and-suspenders: also try domain-specific bootout.
+  for (const domain of [resolveGuiDomain(), resolveUserDomain()]) {
+    const res = await execLaunchctl(["bootout", `${domain}/${label}`]);
+    if (res.code === 0 || isLaunchctlNotLoaded(res)) stopped = true;
   }
-  stdout.write(`${formatLine("Stopped LaunchAgent", `${domain}/${label}`)}\n`);
+  if (!stopped) throw new Error(`launchctl stop failed for ${label}`);
+  stdout.write(`${formatLine("Stopped LaunchAgent", label)}\n`);
 }
 
 export async function installLaunchAgent({
@@ -386,12 +430,21 @@ export async function installLaunchAgent({
   const { logDir, stdoutPath, stderrPath } = resolveGatewayLogPaths(env);
   await fs.mkdir(logDir, { recursive: true });
 
-  const domain = resolveGuiDomain();
   const label = resolveLaunchAgentLabel({ env });
+  const plistPath = resolveLaunchAgentPlistPathForLabel(env, label);
+
+  // Clean up legacy labels.
+  // IMPORTANT: skip the current label — it is handled separately below.
   for (const legacyLabel of LEGACY_GATEWAY_LAUNCH_AGENT_LABELS) {
+    if (legacyLabel === label) continue;
     const legacyPlistPath = resolveLaunchAgentPlistPathForLabel(env, legacyLabel);
-    await execLaunchctl(["bootout", domain, legacyPlistPath]);
-    await execLaunchctl(["unload", legacyPlistPath]);
+    // `launchctl remove` is cross-context: works from SSH, GUI, sudo, and regardless
+    // of whether the service was loaded via bootstrap or legacy load.
+    await execLaunchctl(["remove", legacyLabel]);
+    for (const domain of [resolveGuiDomain(), resolveUserDomain()]) {
+      await execLaunchctl(["bootout", `${domain}/${legacyLabel}`]);
+    }
+    await execLaunchctl(["unload", "-w", legacyPlistPath]);
     try {
       await fs.unlink(legacyPlistPath);
     } catch {
@@ -399,9 +452,21 @@ export async function installLaunchAgent({
     }
   }
 
-  const plistPath = resolveLaunchAgentPlistPathForLabel(env, label);
   await fs.mkdir(path.dirname(plistPath), { recursive: true });
 
+  // --- Teardown BEFORE writing new plist ---
+  // `launchctl remove` is the most reliable way to stop + unregister a service
+  // regardless of which launchd domain (gui/<uid>, user/<uid>) loaded it.
+  // It works from SSH sessions even for services loaded in a GUI login session.
+  await execLaunchctl(["remove", label]);
+  // Belt-and-suspenders: also try domain-specific bootout and legacy unload.
+  for (const d of [resolveGuiDomain(), resolveUserDomain()]) {
+    await execLaunchctl(["bootout", `${d}/${label}`]);
+    await execLaunchctl(["bootout", d, plistPath]);
+  }
+  await execLaunchctl(["unload", "-w", plistPath]);
+
+  // --- Write new plist ---
   const serviceDescription =
     description ??
     formatGatewayServiceDescription({
@@ -419,38 +484,40 @@ export async function installLaunchAgent({
   });
   await fs.writeFile(plistPath, plist, "utf8");
 
-  await execLaunchctl(["bootout", `${domain}/${label}`]);
-  await execLaunchctl(["bootout", domain, plistPath]);
-  await execLaunchctl(["unload", plistPath]);
-  // launchd can persist "disabled" state even after bootout + plist removal; clear it before bootstrap.
-  await execLaunchctl(["enable", `${domain}/${label}`]);
-  const boot = await execLaunchctl(["bootstrap", domain, plistPath]);
-  if (boot.code !== 0) {
-    const rawMsg = (boot.stderr || boot.stdout).trim();
-    // launchd error 125 ("Domain does not support specified action") means the gui/<uid> domain
-    // does not exist — the user has no active macOS GUI login session (e.g. SSH-only connection).
-    // Fall back to the legacy `launchctl load -w` which works from non-GUI contexts.
-    // The plist in ~/Library/LaunchAgents/ guarantees the service auto-starts on next GUI login.
-    if (/\b125\b/.test(rawMsg)) {
-      stdout.write(
-        `\nWarning: no active GUI session for this user (launchd 125); falling back to launchctl load.\n`,
-      );
-      stdout.write(`The service will auto-start on the user's next macOS login.\n`);
-      const load = await execLaunchctl(["load", "-w", plistPath]);
-      if (load.code !== 0) {
-        throw new Error(
-          `launchctl bootstrap failed (no GUI session): ${rawMsg}\n` +
-            `Fallback launchctl load also failed: ${(load.stderr || load.stdout).trim()}\n` +
-            `The plist has been written to ${plistPath} and will activate on next GUI login.\n` +
-            `To start now: log into the macOS GUI as this user, then run: openclaw gateway install`,
-        );
-      }
-      // load succeeded — skip kickstart (service is already running via load)
-    } else {
-      throw new Error(`launchctl bootstrap failed: ${rawMsg}`);
+  // --- Load new plist ---
+  // Try gui/<uid> first (active GUI session), then user/<uid> (SSH / no GUI session).
+  // launchd can persist "disabled" state even after bootout; clear it before bootstrap.
+  const guiDomain = resolveGuiDomain();
+  const userDomain = resolveUserDomain();
+  await execLaunchctl(["enable", `${guiDomain}/${label}`]);
+  await execLaunchctl(["enable", `${userDomain}/${label}`]);
+
+  let bootstrapDomain: string | null = null;
+  for (const d of [guiDomain, userDomain]) {
+    const boot = await execLaunchctl(["bootstrap", d, plistPath]);
+    if (boot.code === 0) {
+      bootstrapDomain = d;
+      break;
     }
+  }
+
+  if (bootstrapDomain !== null) {
+    await execLaunchctl(["kickstart", "-k", `${bootstrapDomain}/${label}`]);
   } else {
-    await execLaunchctl(["kickstart", "-k", `${domain}/${label}`]);
+    // Both bootstrap domains failed. Last-resort: legacy launchctl load.
+    // unload -w was already called above, so load -w will NOT be a no-op here.
+    const load = await execLaunchctl(["load", "-w", plistPath]);
+    if (load.code !== 0) {
+      const guiBoot = await execLaunchctl(["bootstrap", guiDomain, plistPath]);
+      const userBoot = await execLaunchctl(["bootstrap", userDomain, plistPath]);
+      throw new Error(
+        `Gateway service install failed. Bootstrap errors:\n` +
+          `  gui: ${(guiBoot.stderr || guiBoot.stdout).trim()}\n` +
+          `  user: ${(userBoot.stderr || userBoot.stdout).trim()}\n` +
+          `  load: ${(load.stderr || load.stdout).trim()}\n` +
+          `The plist has been written to ${plistPath}.`,
+      );
+    }
   }
 
   // Ensure we don't end up writing to a clack spinner line (wizards show progress without a newline).

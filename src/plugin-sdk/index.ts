@@ -474,3 +474,90 @@ export async function resolveSenderCommandAuthorization(params: {
   });
   return { commandAuthorized };
 }
+
+/**
+ * Like `resolveSenderCommandAuthorization` but accepts a `runtime` object
+ * (the `commands` slice from `PluginRuntime["channel"]`) instead of explicit
+ * `shouldComputeCommandAuthorized` / `resolveCommandAuthorizedFromAuthorizers` callbacks.
+ * Also returns `senderAllowedForCommands` so callers can use it for DM gating.
+ */
+export async function resolveSenderCommandAuthorizationWithRuntime(params: {
+  rawBody: string;
+  cfg: import("../config/config.js").ClawdbotConfig;
+  isGroup: boolean;
+  dmPolicy: string;
+  configuredAllowFrom: string[];
+  configuredGroupAllowFrom?: string[];
+  senderId: string;
+  isSenderAllowed: (senderId: string, allowFrom: string[]) => boolean;
+  readAllowFromStore: () => Promise<string[]>;
+  runtime: {
+    shouldComputeCommandAuthorized: (
+      text?: string,
+      cfg?: import("../config/config.js").ClawdbotConfig,
+    ) => boolean;
+    resolveCommandAuthorizedFromAuthorizers: (params: {
+      useAccessGroups: boolean;
+      authorizers: Array<{ configured: boolean; allowed: boolean }>;
+    }) => boolean;
+  };
+}): Promise<{ senderAllowedForCommands: boolean; commandAuthorized: boolean }> {
+  const {
+    rawBody,
+    cfg,
+    isGroup,
+    dmPolicy,
+    configuredAllowFrom,
+    configuredGroupAllowFrom,
+    senderId,
+    isSenderAllowed: checkSender,
+    readAllowFromStore,
+    runtime,
+  } = params;
+
+  if (!runtime.shouldComputeCommandAuthorized(rawBody, cfg)) {
+    return { senderAllowedForCommands: true, commandAuthorized: true };
+  }
+
+  const storeAllowFrom = await readAllowFromStore().catch(() => [] as string[]);
+
+  if (isGroup) {
+    const groupAllowFrom = configuredGroupAllowFrom ?? configuredAllowFrom;
+    const hasWildcard = groupAllowFrom.some((e) => String(e).trim() === "*");
+    const configured = groupAllowFrom.length > 0;
+    const allowed = hasWildcard || checkSender(senderId, [...groupAllowFrom, ...storeAllowFrom]);
+    const commandAuthorized = runtime.resolveCommandAuthorizedFromAuthorizers({
+      useAccessGroups: configured,
+      authorizers: [{ configured, allowed }],
+    });
+    return { senderAllowedForCommands: allowed, commandAuthorized };
+  }
+
+  // DM
+  if (dmPolicy === "open") return { senderAllowedForCommands: true, commandAuthorized: true };
+  const dmAllowFrom = [...configuredAllowFrom, ...storeAllowFrom];
+  const configured = dmAllowFrom.length > 0;
+  const allowed = checkSender(senderId, dmAllowFrom);
+  const commandAuthorized = runtime.resolveCommandAuthorizedFromAuthorizers({
+    useAccessGroups: configured,
+    authorizers: [{ configured, allowed }],
+  });
+  return { senderAllowedForCommands: allowed, commandAuthorized };
+}
+
+/**
+ * Determine the DM authorization outcome based on policy and sender permission.
+ * Returns "authorized", "disabled", or "unauthorized".
+ */
+export function resolveDirectDmAuthorizationOutcome(params: {
+  isGroup: boolean;
+  dmPolicy: string;
+  senderAllowedForCommands: boolean;
+}): "authorized" | "disabled" | "unauthorized" {
+  const { isGroup, dmPolicy, senderAllowedForCommands } = params;
+  if (isGroup) return "authorized";
+  if (dmPolicy === "disabled") return "disabled";
+  if (dmPolicy === "open") return "authorized";
+  if (senderAllowedForCommands) return "authorized";
+  return "unauthorized";
+}

@@ -64,6 +64,10 @@ type FormatAgentEnvelope = typeof import("../../auto-reply/envelope.js").formatA
 type FormatInboundEnvelope = typeof import("../../auto-reply/envelope.js").formatInboundEnvelope;
 type ResolveEnvelopeFormatOptions =
   typeof import("../../auto-reply/envelope.js").resolveEnvelopeFormatOptions;
+type WithReplyDispatcher = (params: {
+  dispatcher: import("../../auto-reply/reply/reply-dispatcher.js").ReplyDispatcher;
+  run: () => Promise<unknown>;
+}) => Promise<void>;
 type ResolveStateDir = typeof import("../../config/paths.js").resolveStateDir;
 type RecordInboundSession = typeof import("../../channels/session.js").recordInboundSession;
 type RecordSessionMetaFromInbound =
@@ -229,6 +233,8 @@ export type PluginRuntime = {
       formatAgentEnvelope: FormatAgentEnvelope;
       formatInboundEnvelope: FormatInboundEnvelope;
       resolveEnvelopeFormatOptions: ResolveEnvelopeFormatOptions;
+      /** Run a callback with a dispatcher, ensuring waitForIdle is called afterward. */
+      withReplyDispatcher: WithReplyDispatcher;
     };
     routing: {
       resolveAgentRoute: ResolveAgentRoute;

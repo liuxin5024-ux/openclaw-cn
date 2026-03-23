@@ -353,6 +353,37 @@ export async function promptModelAllowlist(params: {
     seen.add(key);
   };
 
+  // Supplement catalog with models from config providers that may not appear in the
+  // Pi SDK catalog (e.g. DashScope, SiliconFlow, and other custom OpenAI-compatible providers).
+  const configProviders = cfg.models?.providers;
+  if (configProviders) {
+    const catalogKeys = new Set(catalog.map((e) => modelKey(e.provider, e.id)));
+    for (const [providerKey, providerCfg] of Object.entries(configProviders)) {
+      if (!providerCfg || !Array.isArray(providerCfg.models)) continue;
+      for (const model of providerCfg.models) {
+        const id =
+          typeof model === "object" && model !== null ? (model as { id?: string }).id : undefined;
+        if (!id) continue;
+        const key = modelKey(providerKey, id);
+        if (catalogKeys.has(key)) continue;
+        catalogKeys.add(key);
+        catalog.push({
+          id,
+          name: (model as { name?: string }).name ?? id,
+          provider: providerKey,
+          contextWindow:
+            typeof (model as { contextWindow?: number }).contextWindow === "number"
+              ? (model as { contextWindow?: number }).contextWindow
+              : undefined,
+          reasoning:
+            typeof (model as { reasoning?: boolean }).reasoning === "boolean"
+              ? (model as { reasoning?: boolean }).reasoning
+              : undefined,
+        });
+      }
+    }
+  }
+
   let filteredCatalog = allowedKeySet
     ? catalog.filter((entry) => allowedKeySet.has(modelKey(entry.provider, entry.id)))
     : catalog;

@@ -139,6 +139,45 @@ describe("promptModelAllowlist", () => {
       "anthropic/claude-opus-4-5",
     ]);
   });
+
+  it("filters to preferredProvider using config provider models not in SDK catalog", async () => {
+    // SDK catalog only has built-in providers (anthropic, openai, etc.)
+    loadModelCatalog.mockResolvedValue([
+      { provider: "anthropic", id: "claude-opus-4-5", name: "Claude Opus 4.5" },
+      { provider: "openai", id: "gpt-5.2", name: "GPT-5.2" },
+    ]);
+
+    const multiselect = vi.fn(async (params) =>
+      params.options.map((option: { value: string }) => option.value),
+    );
+    const prompter = makePrompter({ multiselect });
+    // DashScope models only exist in config providers, not in the SDK catalog
+    const config = {
+      agents: { defaults: {} },
+      models: {
+        providers: {
+          dashscope: {
+            baseUrl: "https://dashscope.aliyuncs.com/compatible-mode/v1",
+            api: "openai-completions",
+            models: [
+              { id: "qwen-plus", name: "Qwen Plus", contextWindow: 128000 },
+              { id: "qwen-turbo", name: "Qwen Turbo", contextWindow: 128000 },
+            ],
+          },
+        },
+      },
+    } as ClawdbotConfig;
+
+    await promptModelAllowlist({ config, prompter, preferredProvider: "dashscope" });
+
+    const options = multiselect.mock.calls[0]?.[0]?.options ?? [];
+    const values = options.map((opt: { value: string }) => opt.value);
+    // Should only show DashScope models, not anthropic/openai
+    expect(values).toContain("dashscope/qwen-plus");
+    expect(values).toContain("dashscope/qwen-turbo");
+    expect(values).not.toContain("anthropic/claude-opus-4-5");
+    expect(values).not.toContain("openai/gpt-5.2");
+  });
 });
 
 describe("applyModelAllowlist", () => {

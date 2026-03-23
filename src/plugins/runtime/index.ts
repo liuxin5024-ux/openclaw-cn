@@ -219,6 +219,13 @@ export function createPluginRuntime(): PluginRuntime {
         formatAgentEnvelope,
         formatInboundEnvelope,
         resolveEnvelopeFormatOptions,
+        withReplyDispatcher: async ({ dispatcher, run }) => {
+          try {
+            await run();
+          } finally {
+            await dispatcher.waitForIdle();
+          }
+        },
       },
       routing: {
         resolveAgentRoute,

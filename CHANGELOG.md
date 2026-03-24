@@ -18,6 +18,14 @@ Docs: https://clawd.org.cn/
 
 - **修复 SSH 会话中无法卸载/替换 GUI 会话加载的 LaunchAgent**：通过 SSH 执行 `gateway install --port 18790` 时，如果该服务之前是通过 GUI 登录会话加载的（`launchctl load/bootstrap gui/<uid>`），SSH 会话中的 `bootout gui/<uid>/label` 和 `unload -w` 命令均无法触达该服务（macOS launchd 跨域隔离），导致旧进程持续运行。修复方案：所有 launchd 卸载/停止/检测操作优先使用 `launchctl remove <label>`（无需指定 domain，跨上下文可靠），`launchctl list <label>` 替代 `launchctl print domain/label` 做存在性检测，确保从 SSH、sudo、GUI 任意上下文均可正确管理服务
 
+### 微信官方插件渠道支持
+
+- **新增微信渠道（`@tencent-weixin/openclaw-weixin`）**：新增微信官方插件渠道 `@openclaw-cn/openclaw-weixin`，通过腾讯官方 `openclaw-weixin` 接入微信个人号。配置向导支持一键安装插件、自动启用渠道配置，并引导用户通过扫码完成微信登录
+- **plugin-sdk 新增运行时命令授权工具函数**：为官方微信插件导出 `resolveSenderCommandAuthorizationWithRuntime`（基于 runtime 对象的命令授权）、`resolveDirectDmAuthorizationOutcome`（DM 授权结果判定），修复官方插件消息处理时 `is not a function` 崩溃
+- **plugin-sdk 新增临时目录解析函数**：导出 `resolvePreferredOpenClawTmpDir`，修复官方微信插件加载时因缺少该函数导致的启动崩溃
+- **插件运行时新增 `withReplyDispatcher` 方法**：在 `PluginRuntime.channel.reply` 中新增 `withReplyDispatcher` 生命周期包装器，确保回复分发完成后所有排队消息被刷新，修复官方微信插件处理消息时 `withReplyDispatcher is not a function` 报错
+- **配置向导模型选择过滤优化**：修复配置向导中选择百炼等自定义 Provider 时显示所有模型而非仅该 Provider 模型的问题。修复方案：在过滤前将 config 中的自定义 Provider 模型补充到 SDK 目录中，确保按 Provider 筛选时能正确显示对应模型列表
+
 ## 0.1.8
 
 ### bug修复（0.1.8 热补丁）

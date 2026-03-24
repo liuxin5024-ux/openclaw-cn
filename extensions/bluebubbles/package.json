@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/bluebubbles",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Clawdbot BlueBubbles channel plugin",
   "type": "module",
   "clawdbot": {

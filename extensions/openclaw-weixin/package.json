@@ -1,6 +1,6 @@
 {
   "name": "@openclaw-cn/openclaw-weixin",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "description": "微信 OpenClaw 渠道插件入口，接入腾讯官方 @tencent-weixin/openclaw-weixin。",
   "keywords": [
     "openclaw",

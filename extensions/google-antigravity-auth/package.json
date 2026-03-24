@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/google-antigravity-auth",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Clawdbot Google Antigravity OAuth provider plugin",
   "type": "module",
   "clawdbot": {

@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/telegram",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Clawdbot Telegram channel plugin",
   "type": "module",
   "clawdbot": {

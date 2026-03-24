@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/matrix",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Clawdbot Matrix channel plugin",
   "type": "module",
   "dependencies": {

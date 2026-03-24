@@ -1,6 +1,6 @@
 {
   "name": "@openclaw-cn/dingtalk-connector",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "description": "钉钉 OpenClaw 渠道插件，通过官方 dingtalk-real-ai/dingtalk-connector 接入钉钉机器人。",
   "keywords": [
     "dingtalk",

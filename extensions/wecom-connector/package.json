@@ -1,6 +1,6 @@
 {
   "name": "@openclaw-cn/wecom-connector",
-  "version": "0.1.0",
+  "version": "0.1.9",
   "description": "企业微信 OpenClaw 渠道插件，通过官方 @wecom/wecom-openclaw-plugin 接入企业微信机器人。",
   "keywords": [
     "enterprise",

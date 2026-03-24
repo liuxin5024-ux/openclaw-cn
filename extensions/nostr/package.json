@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/nostr",
-  "version": "0.1.7",
+  "version": "0.1.9",
   "description": "Clawdbot Nostr channel plugin for NIP-04 encrypted DMs",
   "type": "module",
   "dependencies": {

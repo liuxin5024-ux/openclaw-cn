@@ -78,6 +78,7 @@ export async function promptAuthConfig(
   if (
     authChoice === "custom-provider-api-key" ||
     authChoice === "ollama-local" ||
+    authChoice === "ephone-api-key" ||
     authChoice === "dashscope-coding-plan-api-key" ||
     authChoice === "moonshot-coding-plan-api-key" ||
     authChoice === "volcengine-coding-plan-api-key"

@@ -2,6 +2,12 @@
 
 Docs: https://clawd.org.cn/
 
+## 0.2.0
+
+### bug修复
+
+- **修复对话页面输入区渐变产生深色蒙层**（#537）：`.chat-compose` 的背景渐变使用 CSS `transparent`（等同于 `rgba(0,0,0,0)` 即透明黑色），浏览器在 sRGB 空间从透明黑色插值到浅色背景时会经过半透明灰色，产生可见的深色条带覆盖对话内容。修复方案：新增 `--bg-transparent` / `--bg-content-transparent` CSS 变量（与背景色同色但 alpha 为 0），替换所有渐变中的 `transparent` 关键字，确保插值始终在同一色相内过渡。感谢 @hyydmmhy 🙏
+
 ## 0.1.9
 
 ### 文档

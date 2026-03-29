@@ -16,6 +16,7 @@ Docs: https://clawd.org.cn/
 
 ### bug修复
 
+- **修复 Windows 全局安装后 CLI 启动报 `Cannot find package 'strip-ansi'`**（#538）：上游依赖 `@mariozechner/pi-coding-agent` 的 `bash-executor.js` 中直接 `import stripAnsi from "strip-ansi"`，但未将 `strip-ansi` 声明为 `dependencies`（幽灵依赖）。pnpm 工作区下因提升机制可正常解析，但通过 `npm install -g openclaw-cn` 全局安装时 npm 的扁平化 `node_modules` 不会安装未声明的传递依赖，导致运行时 `ERR_MODULE_NOT_FOUND`。修复方案：在 `package.json` 中将 `strip-ansi` 添加为直接依赖，确保全局安装时始终可用。感谢 @bolong2016 🙏
 - **修复对话页面输入区渐变产生深色蒙层**（#537）：`.chat-compose` 的背景渐变使用 CSS `transparent`（等同于 `rgba(0,0,0,0)` 即透明黑色），浏览器在 sRGB 空间从透明黑色插值到浅色背景时会经过半透明灰色，产生可见的深色条带覆盖对话内容。修复方案：新增 `--bg-transparent` / `--bg-content-transparent` CSS 变量（与背景色同色但 alpha 为 0），替换所有渐变中的 `transparent` 关键字，确保插值始终在同一色相内过渡。感谢 @hyydmmhy 🙏
 - **修复 Tailscale 直连网关时 WebSocket 断开 (1006)**（#527）：当网关配置 `bind: "tailnet"` 绑定到 Tailscale IP（如 `100.x.x.x`）时，浏览器访问控制台页面后 WebSocket 升级请求的 Origin 为 Tailscale IP，但 `isValidWebSocketOrigin()` 的 CSWSH 白名单仅包含 localhost/127.x/\*.ts.net，导致返回 403 + socket.destroy()，浏览器收到 1006 异常关闭。修复方案：在 Origin 白名单中新增 Tailscale IP 范围（100.64.0.0/10 IPv4 + fd7a:115c:a1e0::/48 IPv6）。感谢 @crossgg 🙏
 

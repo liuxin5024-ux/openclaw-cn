@@ -1,6 +1,6 @@
 {
   "name": "@openclaw-cn/qqbot",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "QQ 频道/群 OpenClaw 渠道插件，通过社区版 @sliverp/aqbot 接入 QQ 机器人。",
   "keywords": [
     "openclaw",

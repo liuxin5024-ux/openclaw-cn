@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/google-gemini-cli-auth",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Clawdbot Gemini CLI OAuth provider plugin",
   "type": "module",
   "clawdbot": {

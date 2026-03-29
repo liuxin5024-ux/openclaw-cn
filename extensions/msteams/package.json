@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/msteams",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Clawdbot Microsoft Teams channel plugin",
   "type": "module",
   "dependencies": {

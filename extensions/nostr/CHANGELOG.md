@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+### Changes
+
+- Version alignment with core Clawdbot release numbers.
+
 ## 0.1.9
 
 ### Changes

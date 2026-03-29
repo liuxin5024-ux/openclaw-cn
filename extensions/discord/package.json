@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/discord",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Clawdbot Discord channel plugin",
   "type": "module",
   "clawdbot": {

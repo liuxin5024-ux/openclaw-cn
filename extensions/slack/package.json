@@ -1,6 +1,6 @@
 {
   "name": "@clawdbot/slack",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "Clawdbot Slack channel plugin",
   "type": "module",
   "clawdbot": {

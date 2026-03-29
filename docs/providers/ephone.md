@@ -1,3 +1,4 @@
+---
 summary: "使用 ePhone AI 模型"
 read_when:
   - 您想使用 ePhone AI 模型
@@ -34,26 +35,26 @@ export EPHONE_API_KEY="your-api-key"
 
 ```json5
 {
-  "models": {
-    "providers": {
-      "ephone": {
-        "baseUrl": "https://api.ephone.ai/v1",
-        "apiKey": "${EPHONE_API_KEY}",
-        "api": "openai-completions",
-        "models": [
-          { "id": "gpt-4o", "name": "GPT-4o" },
-          { "id": "gpt-4o-mini", "name": "GPT-4o Mini" },
-          { "id": "claude-3-5-sonnet", "name": "Claude 3.5 Sonnet" },
-          { "id": "deepseek-chat", "name": "DeepSeek Chat" }
-        ]
-      }
-    }
+  models: {
+    providers: {
+      ephone: {
+        baseUrl: "https://api.ephone.ai/v1",
+        apiKey: "${EPHONE_API_KEY}",
+        api: "openai-completions",
+        models: [
+          { id: "gpt-4o", name: "GPT-4o" },
+          { id: "gpt-4o-mini", name: "GPT-4o Mini" },
+          { id: "claude-3-5-sonnet", name: "Claude 3.5 Sonnet" },
+          { id: "deepseek-chat", name: "DeepSeek Chat" },
+        ],
+      },
+    },
   },
-  "agents": {
-    "defaults": {
-      "model": { "primary": "ephone/gpt-4o" }
-    }
-  }
+  agents: {
+    defaults: {
+      model: { primary: "ephone/gpt-4o" },
+    },
+  },
 }
 ```
 
@@ -68,20 +69,20 @@ export EPHONE_API_KEY="your-api-key"
 
 ePhone AI 支持多个厂商的模型，通过统一的 API 调用。常用模型包括：
 
-| 模型 ID | 说明 |
-|---------|------|
-| `gpt-4o` | OpenAI GPT-4o |
-| `gpt-4o-mini` | OpenAI GPT-4o Mini |
-| `gpt-4-turbo` | OpenAI GPT-4 Turbo |
-| `gpt-3.5-turbo` | OpenAI GPT-3.5 Turbo |
+| 模型 ID             | 说明                        |
+| ------------------- | --------------------------- |
+| `gpt-4o`            | OpenAI GPT-4o               |
+| `gpt-4o-mini`       | OpenAI GPT-4o Mini          |
+| `gpt-4-turbo`       | OpenAI GPT-4 Turbo          |
+| `gpt-3.5-turbo`     | OpenAI GPT-3.5 Turbo        |
 | `claude-3-5-sonnet` | Anthropic Claude 3.5 Sonnet |
-| `claude-3-opus` | Anthropic Claude 3 Opus |
-| `claude-3-haiku` | Anthropic Claude 3 Haiku |
-| `deepseek-chat` | DeepSeek Chat |
-| `deepseek-coder` | DeepSeek Coder |
-| `gemini-pro` | Google Gemini Pro |
-| `qwen-turbo` | 阿里通义千问 Turbo |
-| `moonshot-v1-8k` | Moonshot Kimi 8K |
+| `claude-3-opus`     | Anthropic Claude 3 Opus     |
+| `claude-3-haiku`    | Anthropic Claude 3 Haiku    |
+| `deepseek-chat`     | DeepSeek Chat               |
+| `deepseek-coder`    | DeepSeek Coder              |
+| `gemini-pro`        | Google Gemini Pro           |
+| `qwen-turbo`        | 阿里通义千问 Turbo          |
+| `moonshot-v1-8k`    | Moonshot Kimi 8K            |
 
 > 注意：完整的模型列表请参考 [ePhone AI 官网](https://platform.ephone.ai/) 或控制台。
 
